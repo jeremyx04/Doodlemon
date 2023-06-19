@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 
 const Canvas = ({width,height}) => {
-    const [mousePos, setMousePos] = useState({x:0,y:0});
-    const [canvasContext, setCanvasContext] = useState(null);
+    const [ mousePos, setMousePos ] = useState({x:0,y:0});
+    const [ canvasContext, setCanvasContext ] = useState(null);
+    const [ brushType, setBrushType ] = useState('draw');
 
     const canvasRef = useRef(null);
 
@@ -31,9 +32,9 @@ const Canvas = ({width,height}) => {
         });
     };
 
-    const Draw = (e) => {
+    const Draw = (e, ctx) => {
         if(e.buttons !== 1) return;
-        const ctx = canvasContext;
+
         const npos = computeRelativePos(e.clientX,e.clientY);
         ctx.beginPath();
         ctx.moveTo(mousePos.x,mousePos.y);
@@ -46,17 +47,33 @@ const Canvas = ({width,height}) => {
         ctx.stroke();
     }
 
+    const handleMouseMove = (e) => {
+        const ctx = canvasContext;
+        if(brushType == 'draw'){
+            setPos(e); 
+            Draw(e, ctx);
+        }
+        else{
+            setPos(e);
+            ctx.strokeStyle = `rgb(245,243,241)`;
+            ctx.lineWidth = 10;
+            Draw(e, ctx);
+        }
+    }
+
     return (
-        <canvas 
-            width={width} 
-            height={height} 
-            style={canvasStyle}
-            ref={canvasRef}
-            onMouseEnter={(e) => setPos(e)}
-            onMouseDown={(e) => setPos(e)}
-            onMouseMove={(e) => {setPos(e); 
-                                Draw(e)}}
-            />
+        <>
+            <canvas 
+                width={width} 
+                height={height} 
+                style={canvasStyle}
+                ref={canvasRef}
+                onMouseEnter={(e) => setPos(e)}
+                onMouseDown={(e) => setPos(e)}
+                onMouseMove={handleMouseMove}
+                />
+            <button style={{width:'100px',height:'100px'}} onClick={()=>setBrushType('erase')}/>
+        </>
     );  
 }
 
