@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
+import { baseURL } from '../utils';
+import axios from 'axios';
 
 const Canvas = ({width,height}) => {
     const [ mousePos, setMousePos ] = useState({x:0,y:0});
@@ -13,7 +15,7 @@ const Canvas = ({width,height}) => {
         canvas.width = width;
         canvas.height = height;
         setCanvasContext(ctx);
-    }, [canvasRef]);
+    }, [canvasRef, height, width]);
 
     const computeRelativePos = (oldx, oldy) => {
         if(canvasRef.current){
@@ -34,7 +36,6 @@ const Canvas = ({width,height}) => {
 
     const Draw = (e, ctx) => {
         if(e.buttons !== 1) return;
-
         const npos = computeRelativePos(e.clientX,e.clientY);
         ctx.beginPath();
         ctx.moveTo(mousePos.x,mousePos.y);
@@ -49,8 +50,10 @@ const Canvas = ({width,height}) => {
 
     const handleMouseMove = (e) => {
         const ctx = canvasContext;
-        if(brushType == 'draw'){
+        if(brushType === 'draw'){
             setPos(e); 
+            ctx.strokeStyle = `rgb(0,0,0)`;
+            ctx.lineWidth = 2;
             Draw(e, ctx);
         }
         else{
@@ -61,6 +64,34 @@ const Canvas = ({width,height}) => {
         }
     }
 
+    const changeBrushType = () => {
+        if(brushType === 'draw'){
+            setBrushType('erase');
+        }
+        else if(brushType === 'erase'){
+            setBrushType('draw');
+        }
+    }
+
+    const saveCanvasAsPNG = async () => {
+        if(!canvasRef.current){
+            return;
+        }
+        const canvas = canvasRef.current;
+        const imgURL = canvas.toDataURL('image/png',0.5);
+        console.log(imgURL);
+        const headers = {'Content-Type':'application/json',
+                    'Access-Control-Allow-Origin':'http://localhost:3000',
+                    'Access-Control-Allow-Methods':'POST,PATCH,OPTIONS'}
+        const res = await axios.post(`${baseURL}/submitImage`, {
+            headers: headers,
+            body: {
+                url: imgURL,
+            },
+        });
+        console.log(res);
+    };
+    
     return (
         <>
             <canvas 
@@ -72,7 +103,10 @@ const Canvas = ({width,height}) => {
                 onMouseDown={(e) => setPos(e)}
                 onMouseMove={handleMouseMove}
                 />
-            <button style={{width:'100px',height:'100px'}} onClick={()=>setBrushType('erase')}/>
+                <div style={{display: 'flex', flexDirection: 'column'}}>
+                    <button style={{width:'100px',height:'100px'}} onClick={changeBrushType}/>
+                    <button style={{width:'100px',height:'100px'}} onClick={saveCanvasAsPNG}/>
+                </div>
         </>
     );  
 }
