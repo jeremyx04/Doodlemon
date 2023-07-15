@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { baseURL } from '../utils';
 import axios from 'axios';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faEraser } from '@fortawesome/free-solid-svg-icons'
 
 const Canvas = ({width,height}) => {
     const [ mousePos, setMousePos ] = useState({x:0,y:0});
@@ -52,13 +54,13 @@ const Canvas = ({width,height}) => {
         const ctx = canvasContext;
         if(brushType === 'draw'){
             setPos(e); 
-            ctx.strokeStyle = `rgb(0,0,0)`;
+            ctx.globalCompositeOperation="source-over";
             ctx.lineWidth = 2;
             Draw(e, ctx);
         }
         else{
             setPos(e);
-            ctx.strokeStyle = `rgb(245,243,241)`;
+            ctx.globalCompositeOperation="destination-out";
             ctx.lineWidth = 10;
             Draw(e, ctx);
         }
@@ -78,18 +80,24 @@ const Canvas = ({width,height}) => {
             return;
         }
         const canvas = canvasRef.current;
-        const imgURL = canvas.toDataURL('image/png',0.5);
-        console.log(imgURL);
         const headers = {'Content-Type':'application/json',
-                    'Access-Control-Allow-Origin':'http://localhost:3000',
-                    'Access-Control-Allow-Methods':'POST,PATCH,OPTIONS'}
-        const res = await axios.post(`${baseURL}/submitImage`, {
-            headers: headers,
-            body: {
-                url: imgURL,
-            },
+        'Access-Control-Allow-Origin':'http://localhost:3000',
+        'Access-Control-Allow-Methods':'POST,PATCH,OPTIONS'}
+
+        canvas.toBlob(async (blob) => {
+            const newImg = document.createElement("img");
+            const imgURL = URL.createObjectURL(blob);  
+            const res = await axios.post(`${baseURL}/submitImage`, {
+                headers: headers,
+                body: {
+                    url: imgURL,
+                },
+            });
+        console.log(res.data.url);
+            newImg.onload = () => {
+              URL.revokeObjectURL(imgURL);
+            };
         });
-        console.log(res);
     };
     
     return (
@@ -97,14 +105,18 @@ const Canvas = ({width,height}) => {
             <canvas 
                 width={width} 
                 height={height} 
-                style={canvasStyle}
+                style={{ border: "1px solid black", backgroundColor: "white",}}
                 ref={canvasRef}
                 onMouseEnter={(e) => setPos(e)}
                 onMouseDown={(e) => setPos(e)}
                 onMouseMove={handleMouseMove}
                 />
                 <div style={{display: 'flex', flexDirection: 'column'}}>
-                    <button style={{width:'100px',height:'100px'}} onClick={changeBrushType}/>
+                    <div>
+                        <button style={{width:'100px',height:'100px'}} onClick={changeBrushType}>
+                            <FontAwesomeIcon icon={faEraser} size={40}/>
+                        </button>
+                    </div>
                     <button style={{width:'100px',height:'100px'}} onClick={saveCanvasAsPNG}/>
                 </div>
         </>
@@ -113,6 +125,3 @@ const Canvas = ({width,height}) => {
 
 export default Canvas;
 
-const canvasStyle = {
-    border: "1px solid black"
-}
