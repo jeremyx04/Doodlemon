@@ -3,21 +3,29 @@ import { baseURL } from '../utils';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEraser } from '@fortawesome/free-solid-svg-icons'
+import '../App.css';
+import { canvasHeight, canvasWidth } from '../utils';
+import { Timer } from '../Components/Timer';
+import { useGameContext } from '../context';
 
-const Canvas = ({width,height}) => {
+export const Draw = () => {
     const [ mousePos, setMousePos ] = useState({x:0,y:0});
     const [ canvasContext, setCanvasContext ] = useState(null);
     const [ brushType, setBrushType ] = useState('draw');
+    const gameContext = useGameContext();
+    const referenceImage = gameContext.referenceImage;
+    const setDrawingImage = gameContext.setDrawingImage;
+    const setGameState = gameContext.setGameState;
 
     const canvasRef = useRef(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
         setCanvasContext(ctx);
-    }, [canvasRef, height, width]);
+    }, [canvasRef]);
 
     const computeRelativePos = (oldx, oldy) => {
         if(canvasRef.current){
@@ -36,7 +44,7 @@ const Canvas = ({width,height}) => {
         });
     };
 
-    const Draw = (e, ctx) => {
+    const draw = (e, ctx) => {
         if(e.buttons !== 1) return;
         const npos = computeRelativePos(e.clientX,e.clientY);
         ctx.beginPath();
@@ -52,17 +60,19 @@ const Canvas = ({width,height}) => {
 
     const handleMouseMove = (e) => {
         const ctx = canvasContext;
+        if(!ctx)
+            return;
         if(brushType === 'draw'){
             setPos(e); 
             ctx.globalCompositeOperation="source-over";
             ctx.lineWidth = 2;
-            Draw(e, ctx);
+            draw(e, ctx);
         }
         else{
             setPos(e);
             ctx.globalCompositeOperation="destination-out";
             ctx.lineWidth = 10;
-            Draw(e, ctx);
+            draw(e, ctx);
         }
     }
 
@@ -81,47 +91,44 @@ const Canvas = ({width,height}) => {
         }
         const canvas = canvasRef.current;
         const headers = {'Content-Type':'application/json',
-        'Access-Control-Allow-Origin':'http://localhost:3000',
-        'Access-Control-Allow-Methods':'POST,PATCH,OPTIONS'}
-
-        canvas.toBlob(async (blob) => {
-            const newImg = document.createElement("img");
-            const imgURL = URL.createObjectURL(blob);  
-            const res = await axios.post(`${baseURL}/submitImage`, {
-                headers: headers,
-                body: {
-                    url: imgURL,
-                },
-            });
-        console.log(res.data.url);
-            newImg.onload = () => {
-              URL.revokeObjectURL(imgURL);
-            };
+        'Access-Control-Allow-Methods':'GET,HEAD,POST,PATCH,OPTIONS',
+        'Access-Control-Allow-Headers':
+         'Origin, X-Requested-With, Content-Type, Accept, Authorization'}
+        const drawing_url = canvas.toDataURL('image/png');
+        setDrawingImage(drawing_url);
+        const res = await axios.post(`${baseURL}/submitImage`, {
+            headers: headers,
+            body: {
+                drawing_url: drawing_url,
+                reference_url: referenceImage,
+            },
         });
+        console.log(res);
+        setGameState('results');
     };
     
     return (
         <>
             <canvas 
-                width={width} 
-                height={height} 
-                style={{ border: "1px solid black", backgroundColor: "white",}}
+                width={canvasWidth} 
+                height={canvasHeight} 
+                className="canvas"
                 ref={canvasRef}
                 onMouseEnter={(e) => setPos(e)}
                 onMouseDown={(e) => setPos(e)}
                 onMouseMove={handleMouseMove}
                 />
                 <div style={{display: 'flex', flexDirection: 'column'}}>
-                    <div>
-                        <button style={{width:'100px',height:'100px'}} onClick={changeBrushType}>
-                            <FontAwesomeIcon icon={faEraser} size={40}/>
-                        </button>
-                    </div>
-                    <button style={{width:'100px',height:'100px'}} onClick={saveCanvasAsPNG}/>
+                    <button style={{width:'100px',height:'100px'}} onClick={changeBrushType}>
+                        <FontAwesomeIcon icon={faEraser} size='lg'/>
+                    </button>
+                    <button style={{width:'100px',height:'100px'}} onClick={saveCanvasAsPNG}>
+                        Submit
+                    </button>
                 </div>
+                <Timer onTimerFinish={saveCanvasAsPNG} numSeconds={30}/>
         </>
     );  
 }
 
-export default Canvas;
-
+export default Draw;
