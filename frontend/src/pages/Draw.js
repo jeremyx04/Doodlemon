@@ -16,6 +16,7 @@ export const Draw = () => {
     const referenceImage = gameContext.referenceImage;
     const setDrawingImage = gameContext.setDrawingImage;
     const setGameState = gameContext.setGameState;
+    const setSimilarity = gameContext.setSimilarity;
 
     const canvasRef = useRef(null);
 
@@ -96,15 +97,19 @@ export const Draw = () => {
          'Origin, X-Requested-With, Content-Type, Accept, Authorization'}
         const drawing_url = canvas.toDataURL('image/png');
         setDrawingImage(drawing_url);
-        const res = await axios.post(`${baseURL}/submitImage`, {
-            headers: headers,
-            body: {
-                drawing_url: drawing_url,
-                reference_url: referenceImage,
-            },
-        });
-        console.log(res);
-        setGameState('results');
+        try{
+            const res = await axios.post(`${baseURL}/submitImage`, {
+                headers: headers,
+                body: {
+                    drawing_url: drawing_url,
+                    reference_url: referenceImage,
+                },
+            });
+            setSimilarity(res.data.similarity);
+            setGameState('results');
+        } catch (err){
+            console.error(err);
+        }
     };
     
     return (
