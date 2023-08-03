@@ -22,7 +22,7 @@ export const Results = () => {
                 </div>
             </div>
             <div style={{paddingTop: 50}}>
-                They were {Math.round(similarity * 1000) / 10} % similar!
+                Your drawing was {Math.round(similarity * 1000) / 10} % similar to the original!
             </div>
         </div>
     )
