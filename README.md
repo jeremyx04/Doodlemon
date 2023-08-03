@@ -1,4 +1,4 @@
-# DoodleVerse
+# Doodlemon
 
 This is a drawing game where you are prompted with a random Pokémon, and are given 60 seconds to draw it. Afterwards, you will be judged based on how similar your drawing is to the original.
 
